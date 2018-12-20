@@ -1,13 +1,14 @@
 ﻿using System;
-
+ 
 namespace ibcon
 {
 	class Program
 	{
+		private static MainController controller;
 		static void Main(string[] args)
 		{
-			Console.WriteLine("Hello World!");
-			Console.ReadLine();
+			controller = new MainController();
+			controller.Index();
 		}
 	}
 }
