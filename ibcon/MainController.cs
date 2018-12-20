@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Fleck; // Socket server
+using System.Linq;
 
 namespace ibcon
 {
@@ -31,6 +32,12 @@ namespace ibcon
 					;
 					//Log.Insert(DateTime.Now, "Form1.cs", string.Format("Websocket connection open!"), "white");
 					allSockets.Add(socket);
+
+					foreach (var socket2 in allSockets.ToList()) // Loop through all connections/connected clients and send each of them a message
+					{
+						socket2.Send("Putin had a press conferfence today! ");
+					}
+
 				};
 				socket.OnClose = () =>
 				{
