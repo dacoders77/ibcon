@@ -11,4 +11,9 @@
     <PackageReference Include="Newtonsoft.Json.Schema" Version="3.0.10" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\API_Version 9.73.06\samples\CSharp\IBSampleApp\IBSampleApp.csproj" />
+    <ProjectReference Include="..\API_Version 9.73.06\source\CSharpClient\client\CSharpAPI_9.73.06.csproj" />
+  </ItemGroup>
+
 </Project>

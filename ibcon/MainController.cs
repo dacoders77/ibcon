@@ -3,11 +3,25 @@ using System.Collections.Generic;
 using System.Text;
 using Fleck; // Socket server
 using System.Linq;
+using IBApi; // Namespace from CSharpAPI_9.73.06 linked project
+using IBSampleApp;
+using System.Net;
 
-namespace ibcon
+namespace IBcon
 {
-	public class MainController
+	public partial class MainController
 	{
+
+		// IB API variables
+		public IBClient ibClient;
+		private EReaderMonitorSignal signal;
+		//internal ApiManager apiManager; // Api features like search, place order, getQute etc.
+
+		// Flags
+		private bool isConnected = false; // Connection flag. Prevents connect button click when connected
+		bool conntectButtonFlag = true; // Turns to false when connect button is clicked
+
+
 		private List<IWebSocketConnection> allSockets; // The list of all connected clients to the websocket server 
 
 		// Constructor
@@ -19,6 +33,9 @@ namespace ibcon
 		}
 
 		public void Index() {
+
+			Console.WriteLine("host: " + Classes.Settings.dbHost);
+
 			// Fleck socket server 
 			FleckLog.Level = LogLevel.Debug;
 			allSockets = new List<IWebSocketConnection>();
@@ -78,15 +95,9 @@ namespace ibcon
 			});
 
 
-
-
-
-
-
-			Console.WriteLine("Hello World!");
+			Console.WriteLine("Press any key to exit!");
 			Console.ReadLine();
 
 		}
-
 	}
 }
