@@ -226,16 +226,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\source\csharpclient\client\CSharpAPI.csproj">
-      <Project>{8EDE0744-96C2-40B0-A8DC-37DF79370203}</Project>
-      <Name>CSharpAPI</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\source\CSharpClient\client\CSharpAPI_9.73.06.csproj">
-      <Project>{4d409c62-657a-49e0-a83b-09995bc5724a}</Project>
-      <Name>CSharpAPI_9.73.06</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="ib_logo_2015.ico" />
     <Content Include="LogoIcon.gif" />
   </ItemGroup>

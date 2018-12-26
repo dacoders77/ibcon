@@ -12,8 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\API_Version 9.73.06\samples\CSharp\IBSampleApp\IBSampleApp.csproj" />
-    <ProjectReference Include="..\API_Version 9.73.06\source\CSharpClient\client\CSharpAPI_9.73.06.csproj" />
+    <ProjectReference Include="..\CSharpAPI_9.73.06_net_core\CSharpAPI_9.73.06_net_core.csproj" />
+    <ProjectReference Include="..\IBSampleApp_net_core\IBSampleApp_net_core.csproj" />
   </ItemGroup>
 
 </Project>
