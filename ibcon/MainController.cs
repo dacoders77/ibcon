@@ -7,11 +7,11 @@ using IBApi; // Namespace from CSharpAPI_9.73.06 linked project
 using IBSampleApp;
 using System.Net;
 
+// DELETE THIS CLASS!!!
 namespace IBcon
 {
 	public partial class MainController
 	{
-
 		// IB API variables
 		public IBClient ibClient;
 		private EReaderMonitorSignal signal;

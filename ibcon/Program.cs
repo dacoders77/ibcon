@@ -7,11 +7,12 @@ namespace IBcon
 {
 	class Program
 	{
-		private static MainController controller2;
+		//private static MainController controller2; // Tobe removed
 		private static Controller controller;
+	
 		static void Main(string[] mainArgs)
 		{
-			//controller2 = new MainController();
+			//controller2 = new MainController(); // Tobe removed
 			//controller.Index(); // Works good.
 
 			var context = new CustomSynchronizationContext();
@@ -23,7 +24,7 @@ namespace IBcon
 			// Catch .net low level errors and exceptions
 			AppDomain.CurrentDomain.UnhandledException += (sender, args) => Console.WriteLine("Program.cs exception. " + args.ExceptionObject.ToString());
 
-			Console.WriteLine("Press any key to exit");
+			Console.WriteLine("Press any key to exit ");
 			Console.ReadLine();
 		}
 	}
