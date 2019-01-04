@@ -66,16 +66,20 @@ namespace IBcon.Classes.App
 					var jsonObject = Newtonsoft.Json.Linq.JObject.Parse(message);
 					var requestBody = jsonObject["body"];
 
-					// clientId can be pulled from settings
-					// DO CLIENT ID TEST
 					
 					switch (jsonObject["requestType"].ToString())
 					{
 						case "historyLoad":
 							//apiManager.Search(requestBody["symbol"].ToString());
 							// Fire history load event
-							//_log.Add("----------------AAAAAAAAAAA");
-							onMessage(this, new WebSocketServiceEventArgs { Symbol = requestBody["symbol"].ToString() });
+							onMessage(this, new WebSocketServiceEventArgs {
+								clientId = (int)jsonObject["clientId"],
+								symbol = requestBody["symbol"].ToString(),
+								currency = requestBody["currency"].ToString(),
+								queryTime = requestBody["queryTime"].ToString(),
+								duration = requestBody["duration"].ToString(),
+								timeFrame = requestBody["timeFrame"].ToString()
+							});
 							break;
 
 						case "GetHistoryBars":
@@ -88,12 +92,11 @@ namespace IBcon.Classes.App
 			});
 		}
 
-		public void SendToWsStream(string historyBarsJsonString) {
-			//_log.Add(historyBarsJsonString);
-
+		public void SendToWsStream(string jsonString) {
+			_log.Add(jsonString);
 			foreach (var socket in _allSockets.ToList()) // Loop through all connections/connected clients and send each of them a message
 			{
-				socket.Send(historyBarsJsonString);
+				socket.Send(jsonString);
 			}
 		}
 	}

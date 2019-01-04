@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Newtonsoft.Json;
+using System.Linq;
 
 namespace IBcon.Classes.WsApiMessages
 {
@@ -12,11 +13,12 @@ namespace IBcon.Classes.WsApiMessages
 	 * When all bars are delvired - api end event is sent. 
 	 * 
 	 * Serialization class which creates a search response json object
-	 * https://stackoverflow.com/questions/6201529/how-do-i-turn-a-c-sharp-object-into-a-json-string-in-net
+	 * @see https://stackoverflow.com/questions/6201529/how-do-i-turn-a-c-sharp-object-into-a-json-string-in-net
 	 */
 	public class HistoryBarsLoadResponse
 	{
 		public List<BarObject> ResponseList;
+		public int clientId; // Request client id. Comes from PHP and returned back.
 
 		// Constructor
 		public HistoryBarsLoadResponse() // Constructor 
@@ -28,8 +30,9 @@ namespace IBcon.Classes.WsApiMessages
 		{
 			var obj = new ResponseObject // Create object
 			{
+				clientId = clientId,
 				messageType = "HistoryBarsLoadResponse",
-				barsList = ResponseList
+				barsList = ResponseList.OrderBy(o => o.time_stamp).ToList() // @see https://stackoverflow.com/questions/3309188/how-to-sort-a-listt-by-a-property-in-the-object
 			};
 			var json = JsonConvert.SerializeObject(obj); // Serialize object (convert to json)
 			return json;
@@ -50,6 +53,7 @@ namespace IBcon.Classes.WsApiMessages
 
 	public class ResponseObject
 	{
+		public int clientId;
 		public string messageType;
 		public List<BarObject> barsList;
 	}

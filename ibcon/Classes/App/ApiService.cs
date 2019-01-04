@@ -41,11 +41,12 @@ namespace IBcon.Classes.App
 		// Events
 		public event ApiMessageEventHandler onConnection;
 		public event ApiMessageEventHandler onHistoryBarsEnd;
+		public event ApiMessageEventHandler onSymbolTick;
 
 		// API response objects
-		private HistoryBarsLoadResponse historyBarsLoadResponse;
+		private HistoryBarsLoadResponse _historyBarsLoadResponse;
+		private SymbolTickResponse _symbolTickResponse;
 		
-
 		// Constructor
 		public ApiService(Log log) {
 			// Create new instance of IBClient
@@ -55,32 +56,30 @@ namespace IBcon.Classes.App
 			// Logger
 			_log = log;
 
-			// Api response messages
-			historyBarsLoadResponse = new HistoryBarsLoadResponse();
-		}
-
-		// Test rise event method. Delete it
-		public void RiseEvent() {
-			onConnection(this, new ApiServiceEventArgs { Text = "Manual force event rise from ApiService.cs"}); // Trigger event
+			// Api Response objects instances
+			_historyBarsLoadResponse = new HistoryBarsLoadResponse();
+			_symbolTickResponse = new SymbolTickResponse();
 		}
 
 		// Start method
 		public void Start() {
-			// Event links
 			ibClient.CurrentTime += IbClient_CurrentTime; // Get exchnage current time 
-			// ibClient.MarketDataType += IbClient_MarketDataType;
+			ibClient.MarketDataType += IbClient_MarketDataType; ;
 			ibClient.Error += IbClient_Error; // Errors handling
-			ibClient.TickPrice += IbClient_TickPrice; // reqMarketData. EWrapper Interface
+			
 			ibClient.OrderStatus += IbClient_OrderStatus; // Status of a placed order
 			ibClient.NextValidId += IbClient_NextValidId; // Fires when api is connected. Connection status received here
 			
 			ibClient.HistoricalData += IbClient_HistoricalData; // History bars
 			ibClient.HistoricalDataEnd += IbClient_HistoricalDataEnd; // End transmission confirmation
 
+			ibClient.TickPrice += IbClient_TickPrice1; // reqMarketData. EWrapper Interface. Real-time ticks
+
 			// Get connected
 			IBGatewayConnect();
 		}
 
+		
 		private void IBGatewayConnect() 
 		{
 			try
@@ -154,58 +153,6 @@ namespace IBcon.Classes.App
 			}
 		}
 
-		private void IbClient_TickPrice(IBSampleApp.messages.TickPriceMessage obj) // ReqMktData. Get quote. Tick types https://interactivebrokers.github.io/tws-api/rtd_simple_syntax.html 
-		{
-			char requestCode = obj.RequestId.ToString()[obj.RequestId.ToString().Length - 1]; // First char is the code. C# requests: 5 - fx, 6 - stock. PHP: 7 - stock
-																							  // Tick types: Close - for FX quotes. DelayedCLose - for stock quotes
-																							  //ListViewLog.AddRecord("ApiService.cs line 215", "IbClient_TickPrice. Price " + obj.Price + " requestId: " + obj.RequestId + " tick type: " + TickType.getField(obj.Field));
-			_log.Add("IbClient_TickPrice. Price " + obj.Price + " requestId: " + obj.RequestId + " tick type: " + TickType.getField(obj.Field));
-
-			// FX quote. C# while executing a basket
-			// When a fx quote is received, ExecuteBasketThread() checks it and requests a stock quote
-			if (TickType.getField(obj.Field) == "close") // bidPrice = -1. This value returned when market is closed. https://interactivebrokers.github.io/tws-api/md_receive.html
-			{
-				/*
-				basket.assetForexQuote = obj.Price;
-				ListViewLog.AddRecord(this, "brokerListBox", "ApiService.cs line 210", "IbClient_TickPrice. FX Quote: " + obj.Price + " " + obj.RequestId, "yellow");
-
-				basket.UpdateInfoJson(string.Format("FX quote successfully recevied. FX quote: {0}. RequestID: {1}", obj.Price, obj.RequestId), "fxQuoteRequest", "ok", obj.RequestId, "fx_request_id"); // Update json info feild in DB
-				basket.addForexQuoteToDB(obj.RequestId, obj.Price); // Update fx quote in the BD
-				*/
-			}
-
-			// For stock. A request from PHP. While adding an asset to a basket
-			// In this case we do not record this price to the DB. It is recorded from PHP
-			if (TickType.getField(obj.Field) == "delayedLast" && requestCode.ToString() == "7") // PHP. Stock quote request
-			{
-
-				//ListViewLog.AddRecord("ApiService.cs line 221", "IbClient_TickPrice. PHP req. price: " + obj.Price + " reqId: " + obj.RequestId);
-				_log.Add("IbClient_TickPrice. PHP req. price: " + obj.Price + " reqId: " + obj.RequestId);
-
-				/*
-				quoteResponse.symbolPrice = obj.Price;
-				quoteResponse.symbolName = apiManager.symbolPass; // We have to store symbol name and basket number as apiManager fields. Symbol name is not returned with IbClient_TickPrice response as well as basket number. Then basket number will be returnet to php and passed as the parameter to Quote.php class where price field will be updated. Symbol name and basket number are the key
-				quoteResponse.basketNum = apiManager.basketNumber; // Pass basket number to api manager. First basket number was assigned to a class field basketNumber of apiManager class 
-
-				foreach (var socket in allSockets.ToList()) // Loop through all connections/connected clients and send each of them a message
-				{
-					socket.Send(quoteResponse.ReturnJson());
-				}
-				*/
-			}
-
-			// C#. ApiManager stock quote request
-			if (TickType.getField(obj.Field) == "delayedLast" && requestCode.ToString() == "6")
-			{
-				// Updte quote value in DB
-				//basket.UpdateStockQuoteValue(obj.RequestId, obj.Price, this);
-				//ListViewLog.AddRecord("ApiService.cs", "IbClient_TickPrice. C# 6 req. price: " + obj.Price + " " + obj.RequestId);
-				_log.Add("IbClient_TickPrice. C# 6 req. price: " + obj.Price + " " + obj.RequestId);
-
-				//basket.UpdateInfoJson(string.Format("Stock quote successfully recevied. Stock quote: {0}. RequestID: {1}", obj.Price, obj.RequestId), "stockQuoteRequest", "ok", obj.RequestId, "quote_request_id"); // Update json info feild in DB
-			}
-		}
-
 		private void IbClient_OrderStatus(IBSampleApp.messages.OrderStatusMessage obj)
 		{
 			//ListViewLog.AddRecord("ApiService.cs", "IbClient_OrderStatus. line 153. avgFillprice, filled, orderID, orderStatus: " + obj.AvgFillPrice + " | " + obj.Filled + " | " + obj.OrderId + " | " + obj.Status);
@@ -215,11 +162,6 @@ namespace IBcon.Classes.App
 
 		private void IbClient_NextValidId(IBSampleApp.messages.ConnectionStatusMessage obj) // Api connection established
 		{
-			// TEST EVENT RISE
-			// Subscription is performed in Controller.cs
-			onConnection(this, new ApiServiceEventArgs { Text = "CONNECTED TO API! from ApiService.cs" }); // Trigger event
-
-
 			initialNextValidOrderID = ibClient.NextOrderId; // Get initial value once. Then this value vill be encreased
 			//ListViewLog.AddRecord("ApiService.cs", "API connected: " + obj.IsConnected + " Next valid req id: " + ibClient.NextOrderId + " ");
 			_log.Add("API connected: " + obj.IsConnected + " Next valid req id: " + ibClient.NextOrderId);
@@ -248,21 +190,17 @@ namespace IBcon.Classes.App
 
 		// Fetch historical bars 
 		// Bars are returned to IbClient_HistoricalData one by one
-		public void historyBarsLoad(string symbol) {
-			// HISTORY BARS REQUEST TEST
-			// @see https://interactivebrokers.github.io/tws-api/historical_bars.html 
-			// EurGbpFx
-
-			Contract contract = new Contract();
-			contract.Symbol = symbol; // "EUR"
-			contract.SecType = "CASH";
-			contract.Currency = "USD";
-			contract.Exchange = "IDEALPRO";
+		// @see https://interactivebrokers.github.io/tws-api/historical_bars.html 
+		public void historyBarsLoad(int clientId, string symbol, string currency, string queryTime, string duration, string timeFrame) {
+			Contracts.ForexContract contract = new Contracts.ForexContract();
+			contract.Symbol = symbol; // EUR
+			contract.Currency = currency; // USD
 
 			try
 			{
-				string queryTime = DateTime.Now.AddHours(-1).ToString("yyyyMMdd HH:mm:ss");
-				ibClient.ClientSocket.reqHistoricalData(4001, contract, queryTime, "1 D", "30 mins", "MIDPOINT", 1, 1, false, null);
+				//string queryTime = DateTime.Now.AddHours(-1).ToString("yyyyMMdd HH:mm:ss");
+				//ibClient.ClientSocket.reqHistoricalData(4001, contract, queryTime, "1 D", "15 mins", "MIDPOINT", 1, 1, false, null); // "1 min"
+				ibClient.ClientSocket.reqHistoricalData(clientId, contract, queryTime, duration, timeFrame, "MIDPOINT", 1, 1, false, null);
 
 				//ibClient.ClientSocket.reqHistoricalData(4002, ContractSamples.EuropeanStock(), queryTime, "10 D", "1 min", "TRADES", 1, 1, false, null);
 			}
@@ -278,8 +216,8 @@ namespace IBcon.Classes.App
 		private void IbClient_HistoricalData(IBSampleApp.messages.HistoricalDataMessage bar)
 		{
 			//Console.WriteLine("HistoricalData. RequestId: " + bar.RequestId + " Time: " + bar.Date + ", Open: " + bar.Open + ", High: " + bar.High + ", Low: " + bar.Low + ", Close: " + bar.Close + ", Volume: " + bar.Volume + ", Count: " + bar.Count + ", WAP: " + bar.Wap);
-			Console.Write(bar.Open);
-			historyBarsLoadResponse.ResponseList.Add(new BarObject {
+			Console.Write(bar.Open + "|");
+			_historyBarsLoadResponse.ResponseList.Add(new BarObject {
 				date = DateTime.ParseExact(bar.Date, "yyyyMMdd  HH:mm:ss", null).ToString("yyyy-MM-dd HH:mm:ss"),
 				time_stamp = ((DateTimeOffset)DateTime.ParseExact(bar.Date, "yyyyMMdd  HH:mm:ss", null)).ToUnixTimeSeconds() * 1000,
 				open = bar.Open,
@@ -290,14 +228,58 @@ namespace IBcon.Classes.App
 			});
 		}
 
-		// Fires once when transmission is over
+		// Fires once when historical bars transmission is over
 		private void IbClient_HistoricalDataEnd(IBSampleApp.messages.HistoricalDataEndMessage obj)
 		{
-			_log.Add("**** BARS END!" + obj);
-			//_log.Add("**** JSON: " + historyBarsLoadResponse.ReturnJson());
-			// Fire event and send obj to WS
-			onHistoryBarsEnd(this, new ApiServiceEventArgs { HistoryBarsJsonString = historyBarsLoadResponse.ReturnJson() });
-			historyBarsLoadResponse.ResponseList.Clear(); // Empty list 
+			_log.Add("**** BARS END!" + obj.RequestId);
+			_historyBarsLoadResponse.clientId = obj.RequestId; // Set clientId 
+			onHistoryBarsEnd(this, new ApiServiceEventArgs { HistoryBarsJsonString = _historyBarsLoadResponse.ReturnJson() });
+			_historyBarsLoadResponse.ResponseList.Clear(); // Empty list 
+		}
+
+		// Sybscribe to trades 
+		// @see https://interactivebrokers.github.io/tws-api/classIBApi_1_1EClient.html#a7a19258a3a2087c07c1c57b93f659b63 
+		public void subscribeToSymbol() {
+			Contracts.ForexContract contract = new Contracts.ForexContract();
+			contract.Symbol = "EUR"; // EUR
+			contract.Currency = "USD"; // USD
+
+			try
+			{
+				ibClient.ClientSocket.reqMktData(12345, contract, string.Empty, false, false, new List<TagValue>());
+			}
+			catch (Exception exception)
+			{
+				_log.Add("reqHistoricalData. Exception: " + exception);
+			}
+		}
+
+		// Market data event (real-time trades)
+		private void IbClient_TickPrice1(IBSampleApp.messages.TickPriceMessage obj)
+		{
+			//_symbolTickResponse.clientId = 12345; // No need to set it here
+			_symbolTickResponse.symbolTickPrice = obj.Price;
+			onSymbolTick(this, new ApiServiceEventArgs { SymbolTickPrice = _symbolTickResponse.ReturnJson() });
+		}
+
+		// @see https://interactivebrokers.github.io/tws-api/market_data_type.html 
+		private void IbClient_MarketDataType(IBSampleApp.messages.MarketDataTypeMessage obj)
+		{
+			switch (obj.MarketDataType)
+			{
+				case 1:
+					_log.Add("Subscribed to LIVE market data");
+					break;
+				case 2:
+					_log.Add("Subscribed to FROZEN market data");
+					break;
+				case 3:
+					_log.Add("Subscribed to DELAYED market data");
+					break;
+				case 4:
+					_log.Add("Subscribed to DELAYED-FROZEN market data");
+					break;
+			}
 		}
 	}
 }

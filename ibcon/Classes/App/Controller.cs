@@ -16,26 +16,27 @@ namespace IBcon.Classes.App
 			_log = new Log();
 
 			_apiService = new ApiService(_log);
-			_apiService.onConnection += (object sender, ApiServiceEventArgs args) => _log.Add("Event link from Controller.cs: " + args.Text);
+			_apiService.onConnection += (object sender, ApiServiceEventArgs args) => _log.Add("onConnection event rised");
 			// onHistoryReceived
 			// call WS method and send response to the stream
 			_apiService.onHistoryBarsEnd += (object sender, ApiServiceEventArgs args) => _webSocketService.SendToWsStream(args.HistoryBarsJsonString);
 
 			_webSocketService = new WebSocketService(_log);
-			_webSocketService.onMessage += (object sender, WebSocketServiceEventArgs args) => _apiService.historyBarsLoad(args.Symbol);
+			_webSocketService.onMessage += (object sender, WebSocketServiceEventArgs args) => _apiService.historyBarsLoad(args.clientId, args.symbol, args.currency, args.queryTime, args.duration, args.timeFrame);
 			// Call history load method from API SERVICE
 			// When history is returned from IB API - call onHistoryReceived
 
-
+			// real-time quotes
+			_apiService.onSymbolTick += (object sender, ApiServiceEventArgs args) => _webSocketService.SendToWsStream(args.SymbolTickPrice);
 		}
 
 		// Start method. Called from Program.cs
 		public void Run() {
-			// Test event rise. DELETE IT!
-			_apiService.RiseEvent();
-
 			_apiService.Start();
 			_webSocketService.Start();
+			
+			// Test realtime forex quotes
+			_apiService.subscribeToSymbol();
 		}
 	}
 }

@@ -21,7 +21,6 @@ namespace IBcon
 		private bool isConnected = false; // Connection flag. Prevents connect button click when connected
 		bool conntectButtonFlag = true; // Turns to false when connect button is clicked
 
-
 		private List<IWebSocketConnection> allSockets; // The list of all connected clients to the websocket server 
 
 		// Constructor
@@ -33,8 +32,7 @@ namespace IBcon
 		}
 
 		public void Index() {
-
-			Console.WriteLine("host: " + Classes.Settings.dbHost);
+			Console.WriteLine("DB host: " + Classes.Settings.dbHost);
 
 			// Fleck socket server 
 			FleckLog.Level = LogLevel.Debug;

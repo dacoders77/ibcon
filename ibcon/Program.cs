@@ -21,7 +21,7 @@ namespace IBcon
 			controller = new Controller();
 			controller.Run();
 
-			// Catch .net low level errors and exceptions
+			// Catch low level errors and exceptions
 			AppDomain.CurrentDomain.UnhandledException += (sender, args) => Console.WriteLine("Program.cs exception. " + args.ExceptionObject.ToString());
 
 			Console.WriteLine("Press any key to exit ");
