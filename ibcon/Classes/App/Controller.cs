@@ -16,18 +16,14 @@ namespace IBcon.Classes.App
 			_log = new Log();
 
 			_apiService = new ApiService(_log);
-			_apiService.onConnection += (object sender, ApiServiceEventArgs args) => _log.Add("onConnection event rised");
-			// onHistoryReceived
-			// call WS method and send response to the stream
 			_apiService.onHistoryBarsEnd += (object sender, ApiServiceEventArgs args) => _webSocketService.SendToWsStream(args.HistoryBarsJsonString);
+			_apiService.onSymbolTick += (object sender, ApiServiceEventArgs args) => _webSocketService.SendToWsStream(args.SymbolTickPrice); // real-time quotes
+			_apiService.onError += (object sender, ApiServiceEventArgs args) => _webSocketService.SendToWsStream(args.ErrorText);
+			_apiService.onInfo += (object sender, ApiServiceEventArgs args) => _webSocketService.SendToWsStream(args.InfoText);
 
 			_webSocketService = new WebSocketService(_log);
 			_webSocketService.onMessage += (object sender, WebSocketServiceEventArgs args) => _apiService.historyBarsLoad(args.clientId, args.symbol, args.currency, args.queryTime, args.duration, args.timeFrame);
-			// Call history load method from API SERVICE
-			// When history is returned from IB API - call onHistoryReceived
-
-			// real-time quotes
-			_apiService.onSymbolTick += (object sender, ApiServiceEventArgs args) => _webSocketService.SendToWsStream(args.SymbolTickPrice);
+			_webSocketService.onSubscribe += (object sender, WebSocketServiceEventArgs args) => _apiService.subscribeToSymbol(args.clientId, args.symbol, args.currency);
 		}
 
 		// Start method. Called from Program.cs
@@ -36,7 +32,7 @@ namespace IBcon.Classes.App
 			_webSocketService.Start();
 			
 			// Test realtime forex quotes
-			_apiService.subscribeToSymbol();
+			//_apiService.subscribeToSymbol();
 		}
 	}
 }

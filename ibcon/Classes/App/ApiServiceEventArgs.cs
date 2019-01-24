@@ -9,5 +9,7 @@ namespace IBcon.Classes
 	{
 		public string HistoryBarsJsonString { get; set; }
 		public string SymbolTickPrice { get; set; }
+		public string ErrorText { get; set; }
+		public string InfoText { get; set; }
 	}
 }

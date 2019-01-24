@@ -39,14 +39,17 @@ namespace IBcon.Classes.App
 		private readonly Log _log;
 
 		// Events
-		public event ApiMessageEventHandler onConnection;
 		public event ApiMessageEventHandler onHistoryBarsEnd;
 		public event ApiMessageEventHandler onSymbolTick;
+		public event ApiMessageEventHandler onError;
+		public event ApiMessageEventHandler onInfo;
 
 		// API response objects
 		private HistoryBarsLoadResponse _historyBarsLoadResponse;
 		private SymbolTickResponse _symbolTickResponse;
-		
+		private ErrorResponse _errorResponse;
+		private InfoResponse _infoResponse;
+
 		// Constructor
 		public ApiService(Log log) {
 			// Create new instance of IBClient
@@ -59,6 +62,9 @@ namespace IBcon.Classes.App
 			// Api Response objects instances
 			_historyBarsLoadResponse = new HistoryBarsLoadResponse();
 			_symbolTickResponse = new SymbolTickResponse();
+			_errorResponse = new ErrorResponse();
+			_infoResponse = new InfoResponse();
+			
 		}
 
 		// Start method
@@ -73,13 +79,13 @@ namespace IBcon.Classes.App
 			ibClient.HistoricalData += IbClient_HistoricalData; // History bars
 			ibClient.HistoricalDataEnd += IbClient_HistoricalDataEnd; // End transmission confirmation
 
-			ibClient.TickPrice += IbClient_TickPrice1; // reqMarketData. EWrapper Interface. Real-time ticks
+			ibClient.TickPrice += IbClient_TickPrice; // reqMarketData. EWrapper Interface. Real-time ticks
+			ibClient.TickString += IbClient_TickString; // Tick epoch time. Tick #45. http://interactivebrokers.github.io/tws-api/tick_types.html
 
 			// Get connected
 			IBGatewayConnect();
 		}
 
-		
 		private void IBGatewayConnect() 
 		{
 			try
@@ -98,7 +104,6 @@ namespace IBcon.Classes.App
 			}
 			catch (Exception exception)
 			{
-				//ListViewLog.AddRecord(this.GetType().Name, "Connection failed. Check your connection credentials. Exception: " + exception);
 				_log.Add("Connection failed. Check your connection credentials. Exception: " + exception);
 			}
 
@@ -115,24 +120,29 @@ namespace IBcon.Classes.App
 
 		private void IbClient_CurrentTime(long obj) // Get exchnage current time event
 		{
-			//ListViewLog.AddRecord("ApiService.cs", "Exchange current time:" + UnixTimeStampToDateTime(obj).ToString());
 			_log.Add("Exchange current time:" + UnixTimeStampToDateTime(obj).ToString());
 		}
 
 		private void IbClient_Error(int arg1, int arg2, string arg3, Exception arg4) // Errors handling event
 		{
-			if (arg4 != null) // Show exception if it is not null. There are errors with no exceptions
-				Console.WriteLine(
-					"ApiService.cs IbClient_Error" +
-					"link: " + arg4.HelpLink + "\r" +
-					"result" + arg4.HResult + "\r" +
-					"inner exception: " + arg4.InnerException + "\r" +
-					"message: " + arg4.Message + "\r" +
-					"source: " + arg4.Source + "\r" +
-					"stack trace: " + arg4.StackTrace + "\r" +
-					"target site: " + arg4.TargetSite + "\r"
-					);
+			//_infoResponse.infoText = "Info test message"; // Works good
+			// onInfo(this, new ApiServiceEventArgs { InfoText = _infoResponse.ReturnJson() });
 
+			// Show exception if it is not null. There are errors with no exceptions
+			if (arg4 != null) {
+				string errorString = "ApiService.cs IbClient_Error" +
+						"link: " + arg4.HelpLink + "\r" +
+						"result" + arg4.HResult + "\r" +
+						"inner exception: " + arg4.InnerException + "\r" +
+						"message: " + arg4.Message + "\r" +
+						"source: " + arg4.Source + "\r" +
+						"stack trace: " + arg4.StackTrace + "\r" +
+						"target site: " + arg4.TargetSite + "\r";
+				_errorResponse.errorText = errorString;
+				onError(this, new ApiServiceEventArgs { ErrorText = _errorResponse.ReturnJson() });
+				_log.Add(errorString);
+			}
+			
 			// Must be carefull with these ticks! While debugging - disable this filter. Otherwise you can miss important information 
 			// https://interactivebrokers.github.io/tws-api/message_codes.html
 			// 2104 - A market data farm is connected.
@@ -140,13 +150,13 @@ namespace IBcon.Classes.App
 			// 2106 - A historical data farm is connected. 
 			// 10167 - Requested market data is not subscribed. Displaying delayed market data
 			// .. Not all codes are listed
-
 			if (arg2 != 2104 && arg2 != 2119 && arg2 != 2108 && arg2 != 2106 && arg2 != 10167)
-			//if (true)
 			{
-				// arg1 - requestId
-				//ListViewLog.AddRecord("ApiService.cs", "IbClient_Error: args: " + arg1 + " " + arg2 + " " + arg3 + "exception: " + arg4);
-				_log.Add("IbClient_Error: args: " + arg1 + " " + arg2 + " " + arg3 + "exception: " + arg4);
+				string errorString = "IbClient_Error: args: " + arg1 + " " + arg2 + " " + arg3 + " exception: " + arg4;
+				_errorResponse.errorText = errorString;
+				onError(this, new ApiServiceEventArgs { ErrorText = _errorResponse.ReturnJson() });
+				_log.Add(errorString);
+				
 				// id, code, text
 				// A error can triggerd by any request: fx, quote or place order. Use place order for now
 				//basket.UpdateInfoJson(string.Format("Place order error! Error text: {2} . Error code:{1}  RequestID: {0}. ibClient.NextOrderId: {3}", arg1, arg2, arg3, ibClient.NextOrderId), "placeOrder", "error", arg1, "placeorder_request_id"); // Update json info feild in DB
@@ -155,7 +165,6 @@ namespace IBcon.Classes.App
 
 		private void IbClient_OrderStatus(IBSampleApp.messages.OrderStatusMessage obj)
 		{
-			//ListViewLog.AddRecord("ApiService.cs", "IbClient_OrderStatus. line 153. avgFillprice, filled, orderID, orderStatus: " + obj.AvgFillPrice + " | " + obj.Filled + " | " + obj.OrderId + " | " + obj.Status);
 			_log.Add("IbClient_OrderStatus. line 153. avgFillprice, filled, orderID, orderStatus: " + obj.AvgFillPrice + " | " + obj.Filled + " | " + obj.OrderId + " | " + obj.Status);
 			//basket.UpdateInfoJsonExecuteOrder(string.Format("Order executed! Info text: {0}", obj.Status), "executeOrder", "ok", obj.OrderId, obj.AvgFillPrice, obj.Filled); // Update json info feild in DB
 		}
@@ -163,20 +172,11 @@ namespace IBcon.Classes.App
 		private void IbClient_NextValidId(IBSampleApp.messages.ConnectionStatusMessage obj) // Api connection established
 		{
 			initialNextValidOrderID = ibClient.NextOrderId; // Get initial value once. Then this value vill be encreased
-			//ListViewLog.AddRecord("ApiService.cs", "API connected: " + obj.IsConnected + " Next valid req id: " + ibClient.NextOrderId + " ");
+			//List("API connected: " + obj.IsConnected + " Next valid req id: " + ibClient.NextOrderId + " ");
+
 			_log.Add("API connected: " + obj.IsConnected + " Next valid req id: " + ibClient.NextOrderId);
 			// 1 - Realtime, 2 - Frozen, 3 - Delayed data, 4 - Delayed frozen
 			ibClient.ClientSocket.reqMarketDataType(3); // https://interactivebrokers.github.io/tws-api/classIBApi_1_1EClient.html#ae03b31bb2702ba519ed63c46455872b6 
-			
-			/*
-			isConnected = true;
-			if (obj.IsConnected)
-			{
-				status_CT.Text = "Connected";
-				button13.Text = "Disconnect";
-			}
-			*/
-
 			// 1 - Realtime, 2 - Frozen, 3 - Delayed data, 4 - Delayed frozen
 			ibClient.ClientSocket.reqMarketDataType(3); // https://interactivebrokers.github.io/tws-api/classIBApi_1_1EClient.html#ae03b31bb2702ba519ed63c46455872b6 
 		}
@@ -215,7 +215,6 @@ namespace IBcon.Classes.App
 		// @see https://stackoverflow.com/questions/17632584/how-to-get-the-unix-timestamp-in-c-sharp/35425123
 		private void IbClient_HistoricalData(IBSampleApp.messages.HistoricalDataMessage bar)
 		{
-			//Console.WriteLine("HistoricalData. RequestId: " + bar.RequestId + " Time: " + bar.Date + ", Open: " + bar.Open + ", High: " + bar.High + ", Low: " + bar.Low + ", Close: " + bar.Close + ", Volume: " + bar.Volume + ", Count: " + bar.Count + ", WAP: " + bar.Wap);
 			Console.Write(bar.Open + "|");
 			_historyBarsLoadResponse.ResponseList.Add(new BarObject {
 				date = DateTime.ParseExact(bar.Date, "yyyyMMdd  HH:mm:ss", null).ToString("yyyy-MM-dd HH:mm:ss"),
@@ -235,18 +234,23 @@ namespace IBcon.Classes.App
 			_historyBarsLoadResponse.clientId = obj.RequestId; // Set clientId 
 			onHistoryBarsEnd(this, new ApiServiceEventArgs { HistoryBarsJsonString = _historyBarsLoadResponse.ReturnJson() });
 			_historyBarsLoadResponse.ResponseList.Clear(); // Empty list 
+
+			_infoResponse.infoText = "Historical bars transmission finished";
+			onInfo(this, new ApiServiceEventArgs { InfoText = _infoResponse.ReturnJson() });
 		}
 
 		// Sybscribe to trades 
 		// @see https://interactivebrokers.github.io/tws-api/classIBApi_1_1EClient.html#a7a19258a3a2087c07c1c57b93f659b63 
-		public void subscribeToSymbol() {
+		public void subscribeToSymbol(int clientId, string symbol, string currency) {
+			ibClient.ClientSocket.cancelMktData(clientId); // Unsubscription
+
 			Contracts.ForexContract contract = new Contracts.ForexContract();
-			contract.Symbol = "EUR"; // EUR
-			contract.Currency = "USD"; // USD
+			contract.Symbol = symbol; // EUR
+			contract.Currency = currency; // USD
 
 			try
 			{
-				ibClient.ClientSocket.reqMktData(12345, contract, string.Empty, false, false, new List<TagValue>());
+				ibClient.ClientSocket.reqMktData(clientId, contract, string.Empty, false, false, new List<TagValue>());
 			}
 			catch (Exception exception)
 			{
@@ -255,11 +259,25 @@ namespace IBcon.Classes.App
 		}
 
 		// Market data event (real-time trades)
-		private void IbClient_TickPrice1(IBSampleApp.messages.TickPriceMessage obj)
+		// @see price = -1 error: https://interactivebrokers.github.io/tws-api/md_receive.html 
+		private void IbClient_TickPrice(IBSampleApp.messages.TickPriceMessage obj)
 		{
-			//_symbolTickResponse.clientId = 12345; // No need to set it here
-			_symbolTickResponse.symbolTickPrice = obj.Price;
-			onSymbolTick(this, new ApiServiceEventArgs { SymbolTickPrice = _symbolTickResponse.ReturnJson() });
+			if (obj.Price != -1)
+			{
+				//_symbolTickResponse.clientId = 12345; // No need to set it here
+				_symbolTickResponse.symbolTickPrice = obj.Price;
+				onSymbolTick(this, new ApiServiceEventArgs { SymbolTickPrice = _symbolTickResponse.ReturnJson() });
+			}
+			else {
+				_errorResponse.errorText = "SymbolTickPriceError. Exchange returned Price = -1. this indicates that there is no data currently available. Most commonly this occurs when requesting data from markets that are closed. ApiService.cs. https://interactivebrokers.github.io/tws-api/md_receive.html";
+				onError(this, new ApiServiceEventArgs { ErrorText = _errorResponse.ReturnJson() });
+			}
+		}
+
+		// Epock time
+		private void IbClient_TickString(int arg1, int arg2, string arg3)
+		{
+			_log.Add("OOPNN: " + arg1 + " " + arg2 + " " + arg3);
 		}
 
 		// @see https://interactivebrokers.github.io/tws-api/market_data_type.html 
