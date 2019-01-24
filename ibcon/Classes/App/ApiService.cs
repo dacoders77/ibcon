@@ -192,7 +192,9 @@ namespace IBcon.Classes.App
 		// Bars are returned to IbClient_HistoricalData one by one
 		// @see https://interactivebrokers.github.io/tws-api/historical_bars.html 
 		public void historyBarsLoad(int clientId, string symbol, string currency, string queryTime, string duration, string timeFrame) {
-			Contracts.ForexContract contract = new Contracts.ForexContract();
+
+			//Contracts.ForexContract contract = new Contracts.ForexContract();
+			Contracts.StockContract contract = new Contracts.StockContract();
 			contract.Symbol = symbol; // EUR
 			contract.Currency = currency; // USD
 
