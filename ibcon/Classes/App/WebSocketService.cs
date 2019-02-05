@@ -41,7 +41,7 @@ namespace IBcon.Classes.App
 		}
 
 		public void SendToWsStream(string jsonString) {
-			_log.Add("**************sdds Send to open WS stream: " + jsonString);
+			_log.Add("**************SSDS Send to open WS stream: " + jsonString);
 			foreach (var socket in _allSockets.ToList()) socket.Send(jsonString); // Loop through all connections/connected clients and send each of them a message
 		}
 
@@ -82,9 +82,9 @@ namespace IBcon.Classes.App
 						clientId = (int)jsonObject["clientId"],
 						symbol = requestBody["symbol"].ToString(),
 						currency = requestBody["currency"].ToString(),
-							//queryTime = requestBody["queryTime"].ToString(),
+						//queryTime = requestBody["queryTime"].ToString(),
 						//duration = requestBody["duration"].ToString(),
-							//timeFrame = requestBody["timeFrame"].ToString()
+						//timeFrame = requestBody["timeFrame"].ToString()
 					});
 					break;
 

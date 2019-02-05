@@ -26,7 +26,7 @@ namespace IBcon.Classes.App
 		// Flags
 		private bool isConnected = false; // Connection flag. Prevents connect button click when connected
 		// Next order ID
-		public int nxtOrderID
+		private int nxtOrderID
 		{
 			get
 			{
@@ -34,6 +34,8 @@ namespace IBcon.Classes.App
 				return initialNextValidOrderID;
 			}
 		}
+		// Current subscribtion orderId
+		int currOrderId = 0;
 
 		// Logger
 		private readonly Log _log;
@@ -171,7 +173,7 @@ namespace IBcon.Classes.App
 
 		private void IbClient_NextValidId(IBSampleApp.messages.ConnectionStatusMessage obj) // Api connection established
 		{
-			initialNextValidOrderID = ibClient.NextOrderId; // Get initial value once. Then this value vill be encreased
+			initialNextValidOrderID = ibClient.NextOrderId; // Get initial value once. Then this value vill be encreased. Used for each new request
 			//List("API connected: " + obj.IsConnected + " Next valid req id: " + ibClient.NextOrderId + " ");
 
 			_log.Add("API connected: " + obj.IsConnected + " Next valid req id: " + ibClient.NextOrderId);
@@ -194,7 +196,11 @@ namespace IBcon.Classes.App
 		public void historyBarsLoad(int clientId, string symbol, string currency, string queryTime, string duration, string timeFrame) {
 
 			//Contracts.ForexContract contract = new Contracts.ForexContract();
-			Contracts.StockContract contract = new Contracts.StockContract();
+			Contract contract;
+			contract = new Contract();
+			contract.SecType = "STK";
+			contract.Currency = "USD";
+			contract.Exchange = "SMART";
 			contract.Symbol = symbol; // EUR
 			contract.Currency = currency; // USD
 
@@ -202,7 +208,8 @@ namespace IBcon.Classes.App
 			{
 				//string queryTime = DateTime.Now.AddHours(-1).ToString("yyyyMMdd HH:mm:ss");
 				//ibClient.ClientSocket.reqHistoricalData(4001, contract, queryTime, "1 D", "15 mins", "MIDPOINT", 1, 1, false, null); // "1 min"
-				ibClient.ClientSocket.reqHistoricalData(clientId, contract, queryTime, duration, timeFrame, "MIDPOINT", 1, 1, false, null);
+				//ibClient.ClientSocket.reqHistoricalData(clientId, contract, queryTime, duration, timeFrame, "MIDPOINT", 1, 1, false, null); 
+				ibClient.ClientSocket.reqHistoricalData(nxtOrderID, contract, queryTime, duration, timeFrame, "MIDPOINT", 1, 1, false, null);
 
 				//ibClient.ClientSocket.reqHistoricalData(4002, ContractSamples.EuropeanStock(), queryTime, "10 D", "1 min", "TRADES", 1, 1, false, null);
 			}
@@ -244,15 +251,27 @@ namespace IBcon.Classes.App
 		// Sybscribe to trades 
 		// @see https://interactivebrokers.github.io/tws-api/classIBApi_1_1EClient.html#a7a19258a3a2087c07c1c57b93f659b63 
 		public void subscribeToSymbol(int clientId, string symbol, string currency) {
-			ibClient.ClientSocket.cancelMktData(clientId); // Unsubscription
+			if (currOrderId != 0)
+				ibClient.ClientSocket.cancelMktData(currOrderId); // Unsubscribe first
 
-			Contracts.ForexContract contract = new Contracts.ForexContract();
-			contract.Symbol = symbol; // EUR
+			//Contracts.ForexContract contract = new Contracts.ForexContract();
+			//Contracts.StockContract contract = new Contracts.StockContract();
+
+			Contract contract;
+			contract = new Contract();
+			contract.SecType = "STK";
+			contract.Currency = "USD";
+			contract.Exchange = "SMART";
+			contract.Symbol = symbol; // EUR, AAPL
 			contract.Currency = currency; // USD
 
 			try
 			{
-				ibClient.ClientSocket.reqMktData(clientId, contract, string.Empty, false, false, new List<TagValue>());
+				//ibClient.ClientSocket.reqMktData(clientId, contract, string.Empty, false, false, new List<TagValue>());
+				int orderIdTemp = nxtOrderID;
+				currOrderId = orderIdTemp;
+				ibClient.ClientSocket.reqMktData(orderIdTemp, contract, string.Empty, false, false, new List<TagValue>());
+
 			}
 			catch (Exception exception)
 			{
@@ -279,7 +298,7 @@ namespace IBcon.Classes.App
 		// Epock time
 		private void IbClient_TickString(int arg1, int arg2, string arg3)
 		{
-			_log.Add("OOPNN: " + arg1 + " " + arg2 + " " + arg3);
+			//_log.Add("OOPNN: " + arg1 + " " + arg2 + " " + arg3);
 		}
 
 		// @see https://interactivebrokers.github.io/tws-api/market_data_type.html 
