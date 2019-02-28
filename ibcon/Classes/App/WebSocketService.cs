@@ -21,6 +21,7 @@ namespace IBcon.Classes.App
 		private Log _log;
 		public event WebSocketMessageEventHandler onMessage;
 		public event WebSocketMessageEventHandler onSubscribe;
+		public event WebSocketMessageEventHandler onPlaceOrder;
 
 		// Constructor
 		public WebSocketService(Log log) {
@@ -87,8 +88,18 @@ namespace IBcon.Classes.App
 						//timeFrame = requestBody["timeFrame"].ToString()
 					});
 					break;
+				case "placeOrder":
+					_log.Add("----------------------------------PLACE ORDER event received!");
+					onPlaceOrder(this, new WebSocketServiceEventArgs
+					{
+						symbol = requestBody["symbol"].ToString(),
+						currency = requestBody["currency"].ToString(),
+						direction = requestBody["direction"].ToString(),
+						volume = (double)requestBody["volume"]
+					});
+					break;
 
-				//case "GetHistoryBars":
+					//case "GetHistoryBars":
 					//apiManager.GetQuote(requestBody["symbol"].ToString(), (int)requestBody["basketNumber"], requestBody["currency"].ToString());
 					// Fire get history bars event
 					//break;

@@ -18,5 +18,9 @@ namespace IBcon.Classes.App
 		public string queryTime { get; set; } // The request's end date and time (the empty string indicates current present moment).
 		public string duration { get; set; } // The amount of time (or Valid Duration String units) to go back from the request's given end date and time.
 		public string timeFrame { get; set; } // Bar size
+
+		public string direction { get; set; }
+		public double volume { get; set; }
+
 	}
 }

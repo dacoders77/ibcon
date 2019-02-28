@@ -21,6 +21,7 @@ namespace IBcon.Classes.App
 		// IB API variables
 		public IBClient ibClient;
 		private EReaderMonitorSignal signal;
+		private Order order;
 		// Other
 		private int initialNextValidOrderID;
 		// Flags
@@ -295,7 +296,7 @@ namespace IBcon.Classes.App
 			}
 		}
 
-		// Epock time
+		// Epoch time
 		private void IbClient_TickString(int arg1, int arg2, string arg3)
 		{
 			//_log.Add("OOPNN: " + arg1 + " " + arg2 + " " + arg3);
@@ -319,6 +320,30 @@ namespace IBcon.Classes.App
 					_log.Add("Subscribed to DELAYED-FROZEN market data");
 					break;
 			}
+		}
+
+		public void placeOrder(string symbol, string currency, string direction, double volume) {
+			Int32 unixTimestamp = (Int32)(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds; // Unix time in milleseconds is used as an order id
+			Contract contract;
+			contract = new Contract();
+			contract.SecType = "STK";
+			contract.Currency = "USD";
+			contract.Exchange = "SMART";
+			contract.Symbol = symbol; // EUR, AAPL
+			contract.Currency = currency; // USD
+
+			// Place order goes from here
+			order = new Order();
+			order.OrderId = unixTimestamp;
+			order.Action = direction;
+			order.OrderType = "MKT";
+			order.TotalQuantity = volume;
+			order.Tif = "DAY";
+
+			// Console.WriteLine("PlaceOrder. ApiManager.cs line 132. " + DateTime.Now.ToString("yyyy.MM.dd. HH:mm:ss:fff" + " ibClient.NextOrderId: " + ibClient.NextOrderId) + " " + contract.Symbol + " | " + contract.Currency);
+			// form.basket.UpdateInfoJson(string.Format("Order placed. RequestID: {0}", requestId), "placeOrder", "ok", requestId, "placeorder_request_id"); // Update json info feild in DB
+			ibClient.ClientSocket.placeOrder(unixTimestamp, contract, order);
+
 		}
 	}
 }

@@ -24,6 +24,8 @@ namespace IBcon.Classes.App
 			_webSocketService = new WebSocketService(_log);
 			_webSocketService.onMessage += (object sender, WebSocketServiceEventArgs args) => _apiService.historyBarsLoad(args.clientId, args.symbol, args.currency, args.queryTime, args.duration, args.timeFrame);
 			_webSocketService.onSubscribe += (object sender, WebSocketServiceEventArgs args) => _apiService.subscribeToSymbol(args.clientId, args.symbol, args.currency);
+
+			_webSocketService.onPlaceOrder += (object sender, WebSocketServiceEventArgs args) => _apiService.placeOrder(args.symbol, args.currency, args.direction, args.volume);
 		}
 
 		// Start method. Called from Program.cs
