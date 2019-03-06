@@ -22,10 +22,14 @@ namespace IBcon.Classes.App
 			_apiService.onInfo += (object sender, ApiServiceEventArgs args) => _webSocketService.SendToWsStream(args.InfoText);
 
 			_webSocketService = new WebSocketService(_log);
+			// Stocks, futures events
 			_webSocketService.onMessage += (object sender, WebSocketServiceEventArgs args) => _apiService.historyBarsLoad(args.clientId, args.symbol, args.currency, args.queryTime, args.duration, args.timeFrame);
 			_webSocketService.onSubscribe += (object sender, WebSocketServiceEventArgs args) => _apiService.subscribeToSymbol(args.clientId, args.symbol, args.currency);
-
 			_webSocketService.onPlaceOrder += (object sender, WebSocketServiceEventArgs args) => _apiService.placeOrder(args.symbol, args.currency, args.direction, args.volume);
+			// FX events
+			_webSocketService.onMessageFx += (object sender, WebSocketServiceEventArgs args) => _apiService.historyBarsLoadFx(args.clientId, args.symbol, args.currency, args.queryTime, args.duration, args.timeFrame);
+			_webSocketService.onSubscribeFx += (object sender, WebSocketServiceEventArgs args) => _apiService.subscribeToSymbolFx(args.clientId, args.symbol, args.currency);
+			_webSocketService.onPlaceOrderFx += (object sender, WebSocketServiceEventArgs args) => _apiService.placeOrderFx(args.symbol, args.currency, args.direction, args.volume);
 		}
 
 		// Start method. Called from Program.cs

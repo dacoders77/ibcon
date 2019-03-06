@@ -327,7 +327,6 @@ namespace IBcon.Classes.App
 			Contract contract;
 			contract = new Contract();
 			contract.SecType = "STK";
-			contract.Currency = "USD";
 			contract.Exchange = "SMART";
 			contract.Symbol = symbol; // EUR, AAPL
 			contract.Currency = currency; // USD
@@ -343,7 +342,78 @@ namespace IBcon.Classes.App
 			// Console.WriteLine("PlaceOrder. ApiManager.cs line 132. " + DateTime.Now.ToString("yyyy.MM.dd. HH:mm:ss:fff" + " ibClient.NextOrderId: " + ibClient.NextOrderId) + " " + contract.Symbol + " | " + contract.Currency);
 			// form.basket.UpdateInfoJson(string.Format("Order placed. RequestID: {0}", requestId), "placeOrder", "ok", requestId, "placeorder_request_id"); // Update json info feild in DB
 			ibClient.ClientSocket.placeOrder(unixTimestamp, contract, order);
+		}
 
+		// ******* FX METHODS *******
+
+		// Fetch FX historical bars 
+		// Bars are returned to IbClient_HistoricalData one by one
+		// @see https://interactivebrokers.github.io/tws-api/historical_bars.html 
+		public void historyBarsLoadFx(int clientId, string symbol, string currency, string queryTime, string duration, string timeFrame)
+		{
+			Contract contract;
+			contract = new Contract();
+			contract.SecType = "CASH";
+			contract.Exchange = "IDEALPRO";
+			contract.Symbol = symbol; // EUR
+			contract.Currency = currency; // USD
+
+			try
+			{
+				ibClient.ClientSocket.reqHistoricalData(nxtOrderID, contract, queryTime, duration, timeFrame, "MIDPOINT", 1, 1, false, null);
+			}
+			catch (Exception exception)
+			{
+				_log.Add("reqHistoricalData FX. Exception: " + exception);
+			}
+		}
+
+		// Sybscribe to FX trades 
+		// @see https://interactivebrokers.github.io/tws-api/classIBApi_1_1EClient.html#a7a19258a3a2087c07c1c57b93f659b63 
+		public void subscribeToSymbolFx(int clientId, string symbol, string currency)
+		{
+			if (currOrderId != 0)
+				ibClient.ClientSocket.cancelMktData(currOrderId); // Unsubscribe first
+
+			Contract contract;
+			contract = new Contract();
+			contract.SecType = "CASH";
+			contract.Exchange = "IDEALPRO";
+			contract.Symbol = symbol; // EUR
+			contract.Currency = currency; // USD
+
+			try
+			{
+				int orderIdTemp = nxtOrderID;
+				currOrderId = orderIdTemp;
+				ibClient.ClientSocket.reqMktData(orderIdTemp, contract, string.Empty, false, false, new List<TagValue>());
+
+			}
+			catch (Exception exception)
+			{
+				_log.Add("subscribeToSymbolFx. Exception: " + exception);
+			}
+		}
+
+		public void placeOrderFx(string symbol, string currency, string direction, double volume)
+		{
+			Int32 unixTimestamp = (Int32)(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds; // Unix time in milleseconds is used as an order id
+			Contract contract;
+			contract = new Contract();
+			contract.SecType = "CASH";
+			contract.Exchange = "IDEALPRO";
+			contract.Symbol = symbol; // EUR
+			contract.Currency = currency; // USD
+
+			// Place order goes from here
+			order = new Order();
+			order.OrderId = unixTimestamp;
+			order.Action = direction;
+			order.OrderType = "MKT";
+			order.TotalQuantity = volume;
+			order.Tif = "DAY";
+		
+			ibClient.ClientSocket.placeOrder(unixTimestamp, contract, order);
 		}
 	}
 }

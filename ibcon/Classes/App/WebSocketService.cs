@@ -6,8 +6,9 @@ using Fleck; // Socket server
 
 namespace IBcon.Classes.App
 {
-	/* Provides websocket connection functionality for C# - Laravel App bridge. 
-	 * Listens to requests from PHP and transfer them to IB gatway which is loaced in a docker container on linux host.
+	/**
+	 * Provides websocket connection functionality for C# - Laravel App bridge. 
+	 * Listens to requests from PHP and transfer them to IB gatway which is loaded in a docker container on linux host.
 	 * Responses are parsed, converted to json and sent back to Laravel PHP app.
 	 */
 
@@ -19,9 +20,14 @@ namespace IBcon.Classes.App
 		private List<IWebSocketConnection> _allSockets; // The list of all connected clients to the websocket server
 		private WebSocketServer _server;
 		private Log _log;
+		// Stocks, futures events, etc
 		public event WebSocketMessageEventHandler onMessage;
 		public event WebSocketMessageEventHandler onSubscribe;
 		public event WebSocketMessageEventHandler onPlaceOrder;
+		// FX events
+		public event WebSocketMessageEventHandler onMessageFx;
+		public event WebSocketMessageEventHandler onSubscribeFx;
+		public event WebSocketMessageEventHandler onPlaceOrderFx;
 
 		// Constructor
 		public WebSocketService(Log log) {
@@ -61,6 +67,7 @@ namespace IBcon.Classes.App
 
 			switch (jsonObject["requestType"].ToString())
 			{
+				// Stock, futures, etc
 				case "historyLoad":
 					onMessage(this, new WebSocketServiceEventArgs
 					{
@@ -73,11 +80,6 @@ namespace IBcon.Classes.App
 					});
 					break;
 				case "subscribeToSymbol":
-					//_log.Add("----------------SUBSCRIBE EVENT GGHHFF");
-					// call onSubscribe
-					// Unsubscribe from previous request using the same request id 12345
-					// call subscription.
-					// IF: price = -1 -> send error message
 					onSubscribe(this, new WebSocketServiceEventArgs
 					{
 						clientId = (int)jsonObject["clientId"],
@@ -89,7 +91,7 @@ namespace IBcon.Classes.App
 					});
 					break;
 				case "placeOrder":
-					_log.Add("----------------------------------PLACE ORDER event received!");
+					_log.Add("----------------------------------PLACE ORDER STK event received!");
 					onPlaceOrder(this, new WebSocketServiceEventArgs
 					{
 						symbol = requestBody["symbol"].ToString(),
@@ -99,10 +101,37 @@ namespace IBcon.Classes.App
 					});
 					break;
 
-					//case "GetHistoryBars":
-					//apiManager.GetQuote(requestBody["symbol"].ToString(), (int)requestBody["basketNumber"], requestBody["currency"].ToString());
-					// Fire get history bars event
-					//break;
+				// ***** FX *****
+
+				case "historyLoadFx":
+					onMessageFx(this, new WebSocketServiceEventArgs
+					{
+						clientId = (int)jsonObject["clientId"],
+						symbol = requestBody["symbol"].ToString(),
+						currency = requestBody["currency"].ToString(),
+						queryTime = requestBody["queryTime"].ToString(),
+						duration = requestBody["duration"].ToString(),
+						timeFrame = requestBody["timeFrame"].ToString()
+					});
+					break;
+				case "subscribeToSymbolFx":
+					onSubscribeFx(this, new WebSocketServiceEventArgs
+					{
+						clientId = (int)jsonObject["clientId"],
+						symbol = requestBody["symbol"].ToString(),
+						currency = requestBody["currency"].ToString(),
+					});
+					break;
+				case "placeOrderFx":
+					_log.Add("----------------------------------PLACE ORDER FX event received!");
+					onPlaceOrderFx(this, new WebSocketServiceEventArgs
+					{
+						symbol = requestBody["symbol"].ToString(),
+						currency = requestBody["currency"].ToString(),
+						direction = requestBody["direction"].ToString(),
+						volume = (double)requestBody["volume"]
+					});
+					break;
 			}
 		}
 	}
